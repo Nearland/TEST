@@ -12,9 +12,7 @@ owm = pyowm.OWM('797385fc66158e63cb61ac82a7d4ee8c', language="ru")  # ключ �
 def weather(message):  # дублирует
     try:
         city_name = message.text[9:]  # цифра 9 удаляет слово weather
-        if city_name == "":
-            bot.send_message(message.chat.id, "Вы не ввели город/страна")
-            pass
+
         bot.send_message(message.chat.id, "Погода в городе " + city_name)
         observation = owm.weather_at_place(city_name)  # Место где будет показывавть погоду
         w = observation.get_weather()
@@ -27,6 +25,10 @@ def weather(message):  # дублирует
     except api_response_error.NotFoundError:
         bot.send_message(message.chat.id, "Нет данных город/страна " + city_name)
         pass
+    except api_call_error.APICallError:
+        if city_name == "":
+            bot.send_message(message.chat.id, "Вы не ввели город/страна")
+            pass
 
 
 def news(message):
