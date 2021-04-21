@@ -13,9 +13,12 @@ owm = pyowm.OWM('797385fc66158e63cb61ac82a7d4ee8c', language="ru")  # ключ �
 # Новости
 @bot.message_handler(commands=['news'])
 def news(message):
+    #  функция для извлечения RSS-каналов
     def parseRSS(rss_url):
         return feedparser.parse(rss_url)
 
+    #  функция предназначена для захвата заголовка и ссылки RSS-канала
+    #  и возвращает в виде списка
     def getHeadlines(rss_url):
         headlines = []
 
@@ -35,11 +38,13 @@ def news(message):
         'googlenews': 'https://news.google.com/rss?hl=ru&gl=RU&ceid=RU:ru',  # сайт с новостями
     }
 
+    # Здесь мы перебираем URL-адреса каналов и вызываем getHeadlines (),
+    # чтобы объединить возвращенные заголовки со всеми заголовками
     for key, url in newsurls.items():
         allheadlines.extend(getHeadlines(url))
 
+    # здесь мы повторяем список allheadlines и отправляем каждый заголовок нашему боту в TG
     for hl in allheadlines:
-        pass
         bot.send_message(message.chat.id, hl)
 
 
@@ -58,9 +63,11 @@ def weather(message):  # дублирует
         answer += "Сейчас примерно " + str(temp) + " °C" + "\n"
         answer += "Ветер " + str(wind) + " м/c" + "\n"
         bot.send_message(message.chat.id, answer)  # ввывод в телеграмм
+        # проверка на существующий город/страна
     except api_response_error.NotFoundError:
         bot.send_message(message.chat.id, "Нет данных город/страна " + city_name)
         pass
+    # проверка на введение город/страна
     except api_call_error.APICallError:
         if city_name == "":
             bot.send_message(message.chat.id, "Вы не ввели город/страна")
@@ -74,7 +81,7 @@ covid19 = COVID19Py.COVID19()
 @bot.message_handler(commands=['covid'])
 def cov(message):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)  # быстрые кнопки
-    btn1 = types.KeyboardButton('Во всём мире')
+    btn1 = types.KeyboardButton('Мир')
     btn2 = types.KeyboardButton('Украина')
     btn3 = types.KeyboardButton('Россия')
     btn4 = types.KeyboardButton('Беларусь')
@@ -83,8 +90,11 @@ def cov(message):
     send_message = f"<b>Привет {message.from_user.first_name}!</b>\nЧтобы узнать данные про коронавируса напишите " \
                    f"название страны, например: США, Украина, Россия и так далее\n"
     bot.send_message(message.chat.id, send_message, parse_mode='html', reply_markup=markup)
+    bot.register_next_step_handler(message, answer_covid)  # после команды вызов функции answer_covid
 
-    final_message = "мир"
+
+def answer_covid(message):
+    final_message = ""
     get_message_bot = message.text.strip().lower()  # делаю только нижние регистры
     if get_message_bot == "сша":
         location = covid19.getLocationByCountryCode("US")
@@ -104,60 +114,29 @@ def cov(message):
         location = covid19.getLocationByCountryCode("DE")
     elif get_message_bot == "япония":
         location = covid19.getLocationByCountryCode("JP")
+    elif get_message_bot == "норвегия":
+        location = covid19.getLocationByCountryCode("NO")
+    elif get_message_bot == "австралия":
+        location = covid19.getLocationByCountryCode("AU")
+    elif get_message_bot == "швеция":
+        location = covid19.getLocationByCountryCode("SE")
+    elif get_message_bot == "великобритания":
+        location = covid19.getLocationByCountryCode("GB")
+    elif get_message_bot == "канада":
+        location = covid19.getLocationByCountryCode("CA")
     else:
         location = covid19.getLatest()
-        final_message = f"<u>Данные по всему миру:</u>\n<b>Заболевших: </b>{location['confirmed']:,}\n<b>Сметрей: </b>{location['deaths']:,}"
+        final_message = f"<u>Данные по всему миру:</u>\n<b>Заболевших: </b>{location['confirmed']:,}" \
+                        f"\n<b>Сметрей: </b>{location['deaths']:,}"
 
-    if final_message == "мир":
+    if final_message == "":
         date = location[0]['last_updated'].split("T")
         time = date[1].split(".")
         final_message = f"<u>Данные по стране:</u>\nНаселение: {location[0]['country_population']:,}\n" \
                         f"Последнее обновление: {date[0]} {time[0]}\nПоследние данные:\n<b>" \
                         f"Заболевших: </b>{location[0]['latest']['confirmed']:,}\n<b>Сметрей: </b>" \
                         f"{location[0]['latest']['deaths']:,}"
-
     bot.send_message(message.chat.id, final_message, parse_mode='html')
-
-
-# @bot.message_handler(content_types=['text'])
-# def lol(message):
-#     final_message = ""
-#     get_message_bot = message.text.strip().lower()  # делаю только нижние регистры
-#     if get_message_bot == "сша":
-#         location = covid19.getLocationByCountryCode("US")
-#     elif get_message_bot == "украина":
-#         location = covid19.getLocationByCountryCode("UA")
-#     elif get_message_bot == "россия":
-#         location = covid19.getLocationByCountryCode("RU")
-#     elif get_message_bot == "беларусь":
-#         location = covid19.getLocationByCountryCode("BY")
-#     elif get_message_bot == "казакхстан":
-#         location = covid19.getLocationByCountryCode("KZ")
-#     elif get_message_bot == "италия":
-#         location = covid19.getLocationByCountryCode("IT")
-#     elif get_message_bot == "франция":
-#         location = covid19.getLocationByCountryCode("FR")
-#     elif get_message_bot == "германия":
-#         location = covid19.getLocationByCountryCode("DE")
-#     elif get_message_bot == "япония":
-#         location = covid19.getLocationByCountryCode("JP")
-#     else:
-#         location = covid19.getLatest()
-#         final_message = f"<u>Данные по всему миру:</u>\n<b>Заболевших: </b>{location['confirmed']:,}\n<b>Сметрей: </b>{location['deaths']:,}"
-#
-#     if final_message == "":
-#         date = location[0]['last_updated'].split("T")
-#         time = date[1].split(".")
-#         final_message = f"<u>Данные по стране:</u>\nНаселение: {location[0]['country_population']:,}\n" \
-#                         f"Последнее обновление: {date[0]} {time[0]}\nПоследние данные:\n<b>" \
-#                         f"Заболевших: </b>{location[0]['latest']['confirmed']:,}\n<b>Сметрей: </b>" \
-#                         f"{location[0]['latest']['deaths']:,}"
-#
-#     bot.send_message(message.chat.id, final_message, parse_mode='html')
-
-
-# @bot.message_handler(content_types=['text'])
-# def mess(message):
 
 
 bot.polling(none_stop=True)
